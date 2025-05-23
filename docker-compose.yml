@@ -14,21 +14,16 @@ services:
     ports:
       - "5432:5432"
 
-  ftp:
-    image: stilliard/pure-ftpd:hardened
-    container_name: ftp-server
+  sftp:
+    image: atmoz/sftp
+    container_name: sftp-server
     restart: always
-    environment:
-      PUBLICHOST: ${PUBLICHOST}
-      FTP_USER_NAME: ${FTP_USER_NAME}
-      FTP_USER_PASS: ${FTP_USER_PASS}
-      FTP_USER_HOME: ${FTP_USER_HOME}
-    volumes:
-      - ftpdata:/home/ftpusers
     ports:
-      - "21:21"
-      - "30000-30009:30000-30009"  # Passive mode ports
+      - "22:22"
+    volumes:
+      - sftpdata:/home/${FTP_USER_NAME}
+    command: "${FTP_USER_NAME}:${FTP_USER_PASS}:1001::upload"
 
 volumes:
   pgdata:
-  ftpdata:
+  sftpdata:
