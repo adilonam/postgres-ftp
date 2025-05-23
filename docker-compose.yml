@@ -19,7 +19,7 @@ services:
     container_name: sftp-server
     restart: always
     ports:
-      - "22:22"
+      - "2222:22"
     volumes:
       - sftpdata:/home/${FTP_USER_NAME}
     command: "${FTP_USER_NAME}:${FTP_USER_PASS}:1001::upload"
