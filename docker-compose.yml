@@ -14,16 +14,20 @@ services:
     ports:
       - "5432:5432"
 
-  sftp:
-    image: atmoz/sftp
-    container_name: sftp-server
+  minio:
+    image: minio/minio
+    container_name: minio-server
     restart: always
     ports:
-      - "2222:22"
+      - "9000:9000"
+      - "9001:9001"
     volumes:
-      - sftpdata:/home/${FTP_USER_NAME}
-    command: "${FTP_USER_NAME}:${FTP_USER_PASS}:1001::upload"
+      - miniodata:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
 
 volumes:
   pgdata:
-  sftpdata:
+  miniodata:
