@@ -9,17 +9,17 @@ services:
     command: >
       sh -c "
         apk add --no-cache openssl &&
-        if [ ! -f /certs/pgladmin/server.cert ]; then
+        if [ ! -f /certs/pgadmin/server.cert ]; then
           echo 'Generating SSL certificates...' &&
-          mkdir -p /certs/pgladmin &&
+          mkdir -p /certs/pgadmin &&
           
           openssl req -x509 -newkey rsa:4096 -keyout /certs/private.key -out /certs/public.crt -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
           
-          openssl req -x509 -newkey rsa:4096 -keyout /certs/pgladmin/server.key -out /certs/pgladmin/server.cert -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
+          openssl req -x509 -newkey rsa:4096 -keyout /certs/pgadmin/server.key -out /certs/pgadmin/server.cert -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
           
-          chmod 644 /certs/private.key /certs/pgladmin/server.key &&
-          chmod 644 /certs/public.crt /certs/pgladmin/server.cert &&
-          chmod 755 /certs/pgladmin &&
+          chmod 644 /certs/private.key /certs/pgadmin/server.key &&
+          chmod 644 /certs/public.crt /certs/pgadmin/server.cert &&
+          chmod 755 /certs/pgadmin &&
           
           echo 'SSL certificates generated successfully!'
         else
@@ -72,8 +72,8 @@ services:
       PGADMIN_SERVER_MODE: "True"
       PGADMIN_CONFIG_SERVER_MODE: "True"
     volumes:
-      - pgladmin-data:/var/lib/pgladmin
-      - ./certs/pgladmin:/certs
+      - pgadmin-data:/var/lib/pgadmin
+      - ./certs/pgadmin:/certs
     depends_on:
       postgres:
         condition: service_started
@@ -83,4 +83,4 @@ services:
 volumes:
   pgdata:
   miniodata:
-  pgladmin-data:
+  pgadmin-data:
