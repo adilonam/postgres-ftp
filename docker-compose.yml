@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "8443:8443"  # pgAdmin HTTPS
+      - "9001:9001"  # MinIO Console HTTPS
+      - "9000:9000"  # MinIO API HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - pgadmin
+      - minio
+      - cert-generator
+    networks:
+      - app-network
+
   cert-generator:
     image: alpine:latest
     container_name: cert-generator
@@ -9,17 +28,13 @@ services:
     command: >
       sh -c "
         apk add --no-cache openssl &&
-        if [ ! -f /certs/pgadmin/server.cert ]; then
+        if [ ! -f /certs/public.crt ]; then
           echo 'Generating SSL certificates...' &&
-          mkdir -p /certs/pgadmin &&
           
           openssl req -x509 -newkey rsa:4096 -keyout /certs/private.key -out /certs/public.crt -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
           
-          openssl req -x509 -newkey rsa:4096 -keyout /certs/pgadmin/server.key -out /certs/pgadmin/server.cert -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
-          
-          chmod 644 /certs/private.key /certs/pgadmin/server.key &&
-          chmod 644 /certs/public.crt /certs/pgadmin/server.cert &&
-          chmod 755 /certs/pgadmin &&
+          chmod 600 /certs/private.key &&
+          chmod 644 /certs/public.crt &&
           
           echo 'SSL certificates generated successfully!'
         else
@@ -39,46 +54,44 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - app-network
 
   minio:
     image: minio/minio
     container_name: minio-server
     restart: always
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    # Removed direct port exposure - only accessible through nginx
     volumes:
       - miniodata:/data
-      - ./certs:/root/.minio/certs
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001" --certs-dir /root/.minio/certs
-    depends_on:
-      cert-generator:
-        condition: service_completed_successfully
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
 
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
     restart: always
-    ports:
-      - "8080:80"
-      - "8443:443"
+    # Removed direct port exposure - only accessible through nginx
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_ENABLE_TLS: "True"
       PGADMIN_SERVER_MODE: "True"
       PGADMIN_CONFIG_SERVER_MODE: "True"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
-      - ./certs/pgadmin:/certs
     depends_on:
       postgres:
         condition: service_started
-      cert-generator:
-        condition: service_completed_successfully
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   pgdata:
